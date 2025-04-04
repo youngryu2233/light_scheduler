@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount" // 挂载相关
-	"github.com/docker/docker/api/types/nat"   // 端口映射相关
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat" // 端口映射相关
 )
 
 type ModelConfig struct {
@@ -21,13 +20,13 @@ type ModelConfig struct {
 }
 
 var modelConfigs = map[string]ModelConfig{
-	"llama2-7b": {
-		ImageName:    "llm-inference:llama2",
-		ModelPath:    "/models/llama2-7b",
+	"llama3-8b": {
+		ImageName:    "model:v1",
+		ModelPath:    "/models/Meta-Llama-3-8B",
 		PortMapping:  "8000:8000",
-		EnvVars:      map[string]string{"MODEL_SIZE": "7b"},
-		VolumeMounts: map[string]string{"/host/models": "/models"},
-		Command:      []string{"python", "serve.py"},
+		EnvVars:      map[string]string{"MODEL_NAME": "/models/Meta-Llama-3-8B"},
+		VolumeMounts: map[string]string{"/root/Models": "/models"},
+		Command:      []string{"python", "server.py"},
 	},
 	"gpt-neo-2.7b": {
 		// 其他模型配置
@@ -78,7 +77,7 @@ func StartModelContainer(modelName string) (string, error) {
 	}
 
 	// 启动容器
-	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		return "", err
 	}
 

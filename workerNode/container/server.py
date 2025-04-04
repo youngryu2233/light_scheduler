@@ -9,12 +9,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 app = FastAPI()
 
 # 配置从环境变量读取
-MODEL_NAME = os.getenv("MODEL_NAME", "root/Model/")
+MODEL_NAME = os.getenv("MODEL_NAME", "/models/Meta-Llama-3-8B")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # 全局加载模型和tokenizer
 print(f"Loading model {MODEL_NAME}...")
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float16).to(DEVICE)
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float16, device_map="auto")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 print("Model loaded successfully")
 
