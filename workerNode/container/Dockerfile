@@ -6,6 +6,7 @@ RUN mkdir -p /root/.config/pip
 RUN echo "[global]" > /root/.config/pip/pip.conf && \
     echo "index-url = https://pypi.tuna.tsinghua.edu.cn/simple" >> /root/.config/pip/pip.conf
 
+# 安装依赖包
 RUN pip install fastapi
 RUN pip install transformers
 RUN pip install accelerate

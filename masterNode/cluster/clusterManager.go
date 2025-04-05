@@ -121,7 +121,7 @@ func (cm *ClusterManager) checkNodeHealth() {
 }
 
 // 启动http服务器，用于处理节点注册和心跳
-func (cm *ClusterManager) StartHTTPServer(port string) error {
+func (cm *ClusterManager) StartHeartbeatHTTPServer(port string) error {
 	// 创建一个http请求多路复用器mux，可以把不同请求路径路由给对应处理函数
 	mux := http.NewServeMux()
 	mux.HandleFunc("/register", cm.handleRegister)
@@ -140,7 +140,6 @@ func (cm *ClusterManager) StartHTTPServer(port string) error {
 	}
 
 	log.Printf("HTTP server listening on %s", cm.httpServer.Addr)
-	// 启动一个goroutine运行服务器
 
 	if err := cm.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 		log.Printf("HTTP server error: %v", err)
