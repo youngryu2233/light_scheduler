@@ -7,6 +7,7 @@ import (
 	// "syscall"
 	// "time"
 	"fmt"
+	"os"
 	"workerNode/container"
 	// "workerNode/worker"
 )
@@ -49,6 +50,7 @@ import (
 
 func main() {
 
+	os.Setenv("DOCKER_API_VERSION", "1.43")
 	containerID, err := container.StartModelContainer("llama3-8b")
 	if err != nil {
 		fmt.Printf(err.Error())

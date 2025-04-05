@@ -25,7 +25,7 @@ class InferenceRequest(BaseModel):
 
 @app.post("/generate")
 async def generate_text(request: InferenceRequest):
-    inputs = tokenizer(request.prompt, return_tensors="pt", device_map="auto")
+    inputs = tokenizer(request.prompt, return_tensors="pt").to("cuda")
     
     with torch.no_grad():
         outputs = model.generate(

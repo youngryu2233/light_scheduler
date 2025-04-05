@@ -26,7 +26,7 @@ var modelConfigs = map[string]ModelConfig{
 		PortMapping:  "8000:8000",
 		EnvVars:      map[string]string{"MODEL_NAME": "/models/Meta-Llama-3-8B"},
 		VolumeMounts: map[string]string{"/root/Models": "/models"},
-		Command:      []string{"python", "server.py"},
+		Command:      []string{"python", "/app/server.py"},
 	},
 	"gpt-neo-2.7b": {
 		// 其他模型配置
@@ -61,17 +61,44 @@ func StartModelContainer(modelName string) (string, error) {
 		})
 	}
 
-	// 创建容器
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: config.ImageName,
-		Cmd:   config.Command,
-		Env:   envVars,
-	}, &container.HostConfig{
-		PortBindings: nat.PortMap{
-			"8000/tcp": []nat.PortBinding{{HostPort: "8000"}},
+	// 定义端口映射
+	portBindings := nat.PortMap{
+		"8000/tcp": []nat.PortBinding{
+			{
+				HostIP:   "0.0.0.0",
+				HostPort: "8000",
+			},
 		},
-		Mounts: mounts,
-	}, nil, nil, "")
+	}
+
+	// 容器名字
+	containerName := "tsif"
+	// 创建容器
+	resp, err := cli.ContainerCreate(ctx,
+		&container.Config{
+			Image: config.ImageName,
+			Cmd:   config.Command,
+			Env:   envVars,
+			ExposedPorts: nat.PortSet{
+				"8000/tcp": struct{}{},
+			},
+		},
+		&container.HostConfig{
+			PortBindings: portBindings,
+			Mounts:       mounts,
+			Privileged:   true,
+			// Runtime:    "nvidia",
+			Resources: container.Resources{
+				DeviceRequests: []container.DeviceRequest{
+					{
+						Driver:       "nvidia",
+						Count:        -1,
+						Capabilities: [][]string{{"gpu", "nvidia", "compute", "utility"}},
+					},
+				},
+			},
+		},
+		nil, nil, containerName)
 	if err != nil {
 		return "", err
 	}
