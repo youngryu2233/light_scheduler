@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"lightScheduler/cluster"
 	"log"
 	"net"
 	"net/http"
@@ -131,14 +132,20 @@ func (q *TaskWaitQueue) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // 持续不断取出等待队列中的元素
-func (q *TaskWaitQueue) HandleQueue() {
+func (q *TaskWaitQueue) HandleQueue(cm *cluster.ClusterManager) {
 	for {
 		select {
 		case task := <-q.queue:
-			log.Printf("任务%s已经调度到节点1上", task.ModelName)
+			// 把任务调度到合适的节点上
+			sechedule(task, cm)
 		case <-q.closed:
 			fmt.Println("Processor stopped by close signal")
 			return
 		}
 	}
+}
+
+func sechedule(task *Task, cm *cluster.ClusterManager) {
+	// TODO,遍历cm的节点列表，选择一个合适的节点调度
+
 }

@@ -40,8 +40,8 @@ func (w *Worker) Start() error {
 	// 启动心跳协程
 	// w.wg.Add(1)
 	go w.heartbeat()
-
 	log.Printf("节点客户端已启动，ID: %s", w.config.NodeID)
+
 	return nil
 }
 

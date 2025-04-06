@@ -21,10 +21,10 @@ func main() {
 		}
 	}()
 
-	// 创建等待队列
+	// 创建任务等待队列
 	wq := task.NewTaskWaitQueue(128)
 	// 启动队伍处理，不断检查队伍中是否有新的任务
-	go wq.HandleQueue()
+	go wq.HandleQueue(cm)
 	// 启动接受推理请求的服务器
 	wq.StartTaskHTTPServer("9090")
 
