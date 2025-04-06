@@ -39,6 +39,7 @@ func main() {
 	<-sigChan
 	log.Println("接收到终止信号，正在关闭...")
 
+	error.As
 	// 停止客户端
 	node.Stop()
 	log.Println("节点已正常退出")
