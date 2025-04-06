@@ -4,35 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount" // 挂载相关
-	"github.com/docker/docker/api/types/nat"   // 端口映射相关
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat" // 端口映射相关
 )
-
-type ModelConfig struct {
-	ImageName    string
-	ModelPath    string
-	PortMapping  string
-	EnvVars      map[string]string
-	VolumeMounts map[string]string
-	Command      []string
-}
-
-var modelConfigs = map[string]ModelConfig{
-	"llama2-7b": {
-		ImageName:    "llm-inference:llama2",
-		ModelPath:    "/models/llama2-7b",
-		PortMapping:  "8000:8000",
-		EnvVars:      map[string]string{"MODEL_SIZE": "7b"},
-		VolumeMounts: map[string]string{"/host/models": "/models"},
-		Command:      []string{"python", "serve.py"},
-	},
-	"gpt-neo-2.7b": {
-		// 其他模型配置
-	},
-}
 
 func StartModelContainer(modelName string) (string, error) {
 	config, exists := modelConfigs[modelName]
@@ -62,23 +38,51 @@ func StartModelContainer(modelName string) (string, error) {
 		})
 	}
 
-	// 创建容器
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: config.ImageName,
-		Cmd:   config.Command,
-		Env:   envVars,
-	}, &container.HostConfig{
-		PortBindings: nat.PortMap{
-			"8000/tcp": []nat.PortBinding{{HostPort: "8000"}},
+	// 定义端口映射
+	portBindings := nat.PortMap{
+		"8000/tcp": []nat.PortBinding{
+			{
+				HostIP:   "0.0.0.0",
+				HostPort: "8000",
+			},
 		},
-		Mounts: mounts,
-	}, nil, nil, "")
+	}
+
+	// 容器名字
+	containerName := "tsif"
+	// 创建容器
+	resp, err := cli.ContainerCreate(ctx,
+		&container.Config{
+			Image: config.ImageName,
+			Cmd:   config.Command,
+			Env:   envVars,
+			// 容器暴露的端口
+			ExposedPorts: nat.PortSet{
+				"8000/tcp": struct{}{},
+			},
+		},
+		&container.HostConfig{
+			PortBindings: portBindings,
+			Mounts:       mounts,
+			Privileged:   true,
+			// Runtime:    "nvidia",
+			Resources: container.Resources{
+				DeviceRequests: []container.DeviceRequest{
+					{
+						Driver:       "nvidia",
+						Count:        -1,
+						Capabilities: [][]string{{"gpu", "nvidia", "compute", "utility"}},
+					},
+				},
+			},
+		},
+		nil, nil, containerName)
 	if err != nil {
 		return "", err
 	}
 
 	// 启动容器
-	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		return "", err
 	}
 

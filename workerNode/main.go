@@ -1,6 +1,12 @@
 package main
 
 import (
+	// "log"
+	// "os"
+	// "os/signal"
+	// "syscall"
+	// "time"
+
 	"log"
 	"os"
 	"os/signal"
@@ -43,4 +49,17 @@ func main() {
 	// 停止客户端
 	node.Stop()
 	log.Println("节点已正常退出")
+
 }
+
+// func main() {
+
+// 	os.Setenv("DOCKER_API_VERSION", "1.43")
+// 	containerID, err := container.StartModelContainer("llama3-8b")
+// 	if err != nil {
+// 		fmt.Printf(err.Error())
+// 	} else {
+// 		fmt.Printf("容器ID是：%s", containerID)
+// 	}
+
+// }

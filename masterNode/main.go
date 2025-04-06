@@ -2,6 +2,7 @@ package main
 
 import (
 	"lightScheduler/cluster"
+	"lightScheduler/task"
 	"log"
 	"time"
 )
@@ -14,13 +15,20 @@ func main() {
 	go cm.StartHealthCheck()
 
 	// 启动心跳监测HTTP服务器
-	if err := cm.StartHTTPServer("8080"); err != nil {
-		log.Fatalf("Failed to start HTTP server: %v", err)
-	}
+	go func() {
+		if err := cm.StartHeartbeatHTTPServer("8080"); err != nil {
+			log.Fatalf("Failed to start HTTP server: %v", err)
+		}
+	}()
+
+	// 创建任务等待队列
+	wq := task.NewTaskWaitQueue(128)
+	// 启动队伍处理，不断检查队伍中是否有新的任务
+	go wq.HandleQueue(cm)
+	// 启动接受推理请求的服务器
+	wq.StartTaskHTTPServer("9090")
 
 	// 保持主goroutine存活，防止退出
 	// select {}
-
-	// 客户端启动（最终要分离出来）
 
 }
