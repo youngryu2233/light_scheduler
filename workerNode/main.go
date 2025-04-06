@@ -16,7 +16,8 @@ import (
 )
 
 func main() {
-	// 创建配置
+
+	// 创建节点配置
 	config := &worker.Config{
 		NodeID:    "node-2",
 		IP:        "192.168.1.100",
@@ -26,13 +27,18 @@ func main() {
 		Timeout:   10 * time.Second,
 	}
 
-	// 创建客户端
+	// 创建工作节点
 	node := worker.NewWorker(config)
 
-	// 启动客户端
-	if err := node.Start(); err != nil {
-		log.Fatalf("启动失败: %v", err)
-	}
+	// 启动，注册节点，并且开启心跳协程
+	go func() {
+		if err := node.Start(); err != nil {
+			log.Fatalf("启动失败: %v", err)
+		}
+	}()
+
+	// 启动调度服务器
+	node.StartScheduler("10000")
 
 	// 设置信号处理
 	// 创建一个缓冲大小为1的os.Signal通道，用于接受系统信号
@@ -45,7 +51,6 @@ func main() {
 	<-sigChan
 	log.Println("接收到终止信号，正在关闭...")
 
-	error.As
 	// 停止客户端
 	node.Stop()
 	log.Println("节点已正常退出")

@@ -1,0 +1,19 @@
+// service.proto
+syntax = "proto3";
+
+option go_package = "workerNode/schedule";
+
+service ScheduleService {
+  rpc ProcessMessage (ScheduleRequest) returns (ScheduleResponse);
+}
+
+message ScheduleRequest {
+  string model_name = 1;
+  string origin_prompt = 2;
+}
+
+message ScheduleResponse {
+  bool success = 1;
+  string port = 2;
+  string message = 3;
+}
