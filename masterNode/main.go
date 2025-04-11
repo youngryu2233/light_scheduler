@@ -14,7 +14,7 @@ func main() {
 	// 启动健康检查
 	go cm.StartHealthCheck()
 
-	// 启动心跳监测HTTP服务器
+	// 启动注册&心跳监测HTTP服务器
 	go func() {
 		if err := cm.StartHeartbeatHTTPServer("8080"); err != nil {
 			log.Fatalf("Failed to start HTTP server: %v", err)
