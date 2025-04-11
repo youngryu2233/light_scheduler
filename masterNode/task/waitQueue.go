@@ -145,7 +145,7 @@ func (q *TaskWaitQueue) HandleQueue(cm *cluster.ClusterManager) {
 		case task := <-q.queue:
 			// 把任务调度到合适的节点上
 			log.Printf("任务已加入：%s", task.ModelName)
-			// sechedule(task, cm)
+			sechedule(task, cm)
 		case <-q.closed:
 			fmt.Println("Processor stopped by close signal")
 			return
@@ -153,8 +153,8 @@ func (q *TaskWaitQueue) HandleQueue(cm *cluster.ClusterManager) {
 	}
 }
 
-// func sechedule(task *Task, cm *cluster.ClusterManager) {
-func Schedule() {
+func sechedule(task *Task, cm *cluster.ClusterManager) {
+	// func Schedule() {
 	// TODO,遍历cm的节点列表，选择一个合适的节点调度
 
 	// 通信服务器的地址

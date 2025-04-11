@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -139,7 +140,7 @@ func (cm *ClusterManager) StartHeartbeatHTTPServer(port string) error {
 		return err
 	}
 
-	log.Printf("HTTP server listening on %s", cm.httpServer.Addr)
+	log.Printf("Heartbeat HTTP server listening on %s", cm.httpServer.Addr)
 
 	if err := cm.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 		log.Printf("HTTP server error: %v", err)
@@ -206,12 +207,24 @@ func (cm *ClusterManager) handleHeartbeat(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// 获取id
+	// 获取节点id
 	nodeID := r.FormValue("node_id")
 	if nodeID == "" {
 		http.Error(w, "Missing node ID", http.StatusBadRequest)
 		return
 	}
+
+	// 从请求体中获取GPU信息
+	gpus := make(map[string]GPU)
+
+	if err := json.NewDecoder(r.Body).Decode(&gpus); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	cm.nodes[nodeID].GPUs = gpus
+	// 打印一下，测试是否添加成功
+	fmt.Println(cm.nodes[nodeID].GPUs)
 
 	// 更新节点的心跳时间为现在，并且状态设置为健康
 	if err := cm.UpdateHeartbeat(nodeID); err != nil {

@@ -26,7 +26,9 @@ func main() {
 	// 启动队伍处理，不断检查队伍中是否有新的任务
 	go wq.HandleQueue(cm)
 	// 启动接受推理请求的服务器
-	wq.StartTaskHTTPServer("9090")
+	if err := wq.StartTaskHTTPServer("8081"); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
 
 	// 保持主goroutine存活，防止退出
 	// select {}

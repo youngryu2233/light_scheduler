@@ -30,9 +30,9 @@ func main() {
 	// 创建工作节点
 	node := worker.NewWorker(config)
 
-	// 启动，注册节点，并且开启心跳协程
+	// 连接到集群中，注册节点，并且开启心跳协程
 	go func() {
-		if err := node.Start(); err != nil {
+		if err := node.StartLink(); err != nil {
 			log.Fatalf("启动失败: %v", err)
 		}
 	}()

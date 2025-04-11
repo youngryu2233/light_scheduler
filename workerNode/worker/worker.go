@@ -1,6 +1,8 @@
 package worker
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -8,6 +10,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/NVIDIA/go-nvml/pkg/nvml"
 )
 
 type Worker struct {
@@ -31,7 +35,7 @@ func NewWorker(config *Config) *Worker {
 }
 
 // Start 启动客户端
-func (w *Worker) Start() error {
+func (w *Worker) StartLink() error {
 	// 先注册节点
 	if err := w.register(); err != nil {
 		return fmt.Errorf("注册失败: %v", err)
@@ -120,7 +124,7 @@ var (
 	ErrNotRegistered = errors.New("节点未注册")
 )
 
-// 发送一次心跳
+// 发送一次心跳，心跳中包含节点信息,包括GPU信息
 func (w *Worker) sendHeartbeat() error {
 	// 上锁
 	w.mu.Lock()
@@ -131,13 +135,25 @@ func (w *Worker) sendHeartbeat() error {
 		return ErrNotRegistered
 	}
 
-	// 只发送节点ID
-	// 构造查询参数
+	// 封装节点ID,构造查询参数
 	params := url.Values{}
 	params.Add("node_id", w.config.NodeID)
 	url := fmt.Sprintf("%s/heartbeat?%s", w.config.ServerURL, params.Encode())
+
+	// 查询出节点当前的GPU状况
+	gpus, err := GetGPUInfo()
+	if err != nil {
+		return fmt.Errorf("获取gpu信息失败:%v", err)
+	}
+
+	// 把gpu数据json化封装到请求体中
+	jsonBody, err := json.Marshal(gpus)
+	if err != nil {
+		return fmt.Errorf("构建gpus的json数据失败:%v", err)
+	}
+
 	// 发送请求
-	resp, err := w.httpClient.Post(url, "application/json", nil)
+	resp, err := w.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return err
 	}
@@ -154,4 +170,50 @@ func (w *Worker) sendHeartbeat() error {
 
 	log.Println("心跳成功")
 	return nil
+}
+
+// 获取本节点上GPU信息
+func GetGPUInfo() (map[string]GPU, error) {
+	// 1. 初始化 NVML
+	ret := nvml.Init()
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("NVML init failed: %s", nvml.ErrorString(ret))
+	}
+	defer nvml.Shutdown()
+
+	// 2. 获取 GPU 数量
+	count, ret := nvml.DeviceGetCount()
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("failed to get device count: %s", nvml.ErrorString(ret))
+	}
+
+	// 初始化map
+	gpus := make(map[string]GPU)
+
+	for i := 0; i < count; i++ {
+		// 3. 获取 GPU 句柄
+		device, ret := nvml.DeviceGetHandleByIndex(i)
+		if ret != nvml.SUCCESS {
+			continue // 跳过错误设备
+		}
+
+		// 4. 获取 GPU 名称
+		name, ret := device.GetName()
+		if ret != nvml.SUCCESS {
+			name = "unknown"
+		}
+
+		// 5. 获取显存信息
+		memInfo, ret := device.GetMemoryInfo()
+		if ret != nvml.SUCCESS {
+			continue // 跳过无法读取显存的设备
+		}
+
+		gpus[fmt.Sprint(i)] = GPU{
+			GPUModel:      name,
+			TotalMemoryMB: memInfo.Total / 1024 / 1024, // 转换为 MB
+			FreeMemoryMB:  memInfo.Free / 1024 / 1024,
+		}
+	}
+	return gpus, nil
 }
