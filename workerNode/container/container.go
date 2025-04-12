@@ -38,17 +38,20 @@ func StartModelContainer(modelName string) (string, error) {
 		})
 	}
 
+	// TODO：获取系统中一个可用的端口号
+	host_port := "31122"
+
 	// 定义端口映射
 	portBindings := nat.PortMap{
 		"8000/tcp": []nat.PortBinding{
 			{
 				HostIP:   "0.0.0.0",
-				HostPort: "8000",
+				HostPort: host_port,
 			},
 		},
 	}
 
-	// 容器名字
+	// TODO: 把容器名字设置成和任务ID相关
 	containerName := "tsif"
 	// 创建容器
 	resp, err := cli.ContainerCreate(ctx,
@@ -86,5 +89,5 @@ func StartModelContainer(modelName string) (string, error) {
 		return "", err
 	}
 
-	return resp.ID, nil
+	return host_port, nil
 }

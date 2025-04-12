@@ -154,11 +154,33 @@ func (q *TaskWaitQueue) HandleQueue(cm *cluster.ClusterManager) {
 }
 
 func sechedule(task *Task, cm *cluster.ClusterManager) {
-	// func Schedule() {
-	// TODO,遍历cm的节点列表，选择一个合适的节点调度
+	// 先获取任务中模型的显存需求
+	model_info := ModelsInfo[task.ModelName]
+	require_mem_MB := model_info.size_GB * 1024
 
-	// 通信服务器的地址
-	conn, err := grpc.NewClient("localhost:10000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// TODO,遍历cm的节点列表，选择一个合适的节点调度
+	var target_node *cluster.Node = nil
+	for _, node := range cm.GetNodes() {
+		var node_availabe_mem_MB uint64
+		node_availabe_mem_MB = 0
+		for _, gpu := range node.GPUs {
+			node_availabe_mem_MB += gpu.FreeMemoryMB
+		}
+		if node_availabe_mem_MB >= require_mem_MB {
+			target_node = node
+			break
+		}
+	}
+
+	if target_node == nil {
+		log.Fatalf("没有找到合适的节点调度任务")
+		return
+	}
+
+	url := target_node.IP + ":10000"
+
+	// grpc通信服务器的地址
+	conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -166,22 +188,23 @@ func sechedule(task *Task, cm *cluster.ClusterManager) {
 
 	c := pb.NewScheduleServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// 增加超时时间到 30 秒，启动一个容器是比较耗时的
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// 发送请求
 	r, err := c.ProcessMessage(ctx, &pb.ScheduleRequest{
-		ModelName:    "gpt",
-		OriginPrompt: "这是一段测试",
+		ModelName:    task.ModelName,
+		OriginPrompt: task.OriginPrompt,
 	})
 
 	if err != nil {
-		log.Fatalf("could not process: %v", err)
+		log.Fatalf("rpc请求创建容器失败: %v", err)
 	}
 
 	if r.Success {
-		log.Printf("处理成功: %s", r.Message)
-		log.Printf("访问端口是: %s", r.Port)
+		fmt.Printf("访问端口是: %s \n", r.Port)
+		fmt.Printf("响应内容: %s", r.Message)
 
 	} else {
 		log.Printf("处理失败: %s", r.Message)

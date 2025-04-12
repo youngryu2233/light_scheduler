@@ -168,7 +168,7 @@ func (w *Worker) sendHeartbeat() error {
 		return fmt.Errorf("心跳请求失败，状态码: %d", resp.StatusCode)
 	}
 
-	log.Println("心跳成功")
+	// log.Println("心跳成功")
 	return nil
 }
 

@@ -19,11 +19,11 @@ func main() {
 
 	// 创建节点配置
 	config := &worker.Config{
-		NodeID:    "node-2",
-		IP:        "192.168.1.100",
+		NodeID:    "node-1",
+		IP:        "127.0.0.1",
 		Port:      "7070",
 		ServerURL: "http://localhost:8080",
-		Interval:  2 * time.Second,
+		Interval:  200000 * time.Second,
 		Timeout:   10 * time.Second,
 	}
 

@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// 创建集群管理器，设置心跳间隔为5秒，超时时间为15秒
-	cm := cluster.NewClusterManager(5*time.Second, 15*time.Second)
+	cm := cluster.NewClusterManager(5*time.Second, 150000*time.Second)
 
 	// 启动健康检查
 	go cm.StartHealthCheck()

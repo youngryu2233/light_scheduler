@@ -224,7 +224,7 @@ func (cm *ClusterManager) handleHeartbeat(w http.ResponseWriter, r *http.Request
 
 	cm.nodes[nodeID].GPUs = gpus
 	// 打印一下，测试是否添加成功
-	fmt.Println(cm.nodes[nodeID].GPUs)
+	// fmt.Println(cm.nodes[nodeID].GPUs)
 
 	// 更新节点的心跳时间为现在，并且状态设置为健康
 	if err := cm.UpdateHeartbeat(nodeID); err != nil {
@@ -250,6 +250,7 @@ func (cm *ClusterManager) GetNodes() map[string]*Node {
 			Port:       node.Port,
 			LastActive: node.LastActive,
 			Status:     node.Status,
+			GPUs:       node.GPUs,
 		}
 	}
 	return nodesCopy
