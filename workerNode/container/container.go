@@ -3,6 +3,8 @@ package container
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount" // 挂载相关
@@ -10,7 +12,10 @@ import (
 	"github.com/docker/go-connections/nat" // 端口映射相关
 )
 
+// 创建推理实例，要加载的模型名称，通过环境变量传入
 func StartModelContainer(modelName string) (string, error) {
+	// 设置环境变量，以免docker 客户端与服务端api版本不一致报错
+	os.Setenv("DOCKER_API_VERSION", "1.43")
 	config, exists := modelConfigs[modelName]
 	if !exists {
 		return "", fmt.Errorf("model %s not supported", modelName)
@@ -90,4 +95,53 @@ func StartModelContainer(modelName string) (string, error) {
 	}
 
 	return host_port, nil
+}
+
+func DeleteContainer(containerName string) error {
+	//  client.WithAPIVersionNegotiation()防止api版本不对齐而报错
+	// 创建Docker客户端
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("无法创建docker客户端: %v", err)
+		return err
+	}
+	defer cli.Close()
+
+	// 获取所有容器
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{
+		All: true, // 包括停止的容器
+	})
+	if err != nil {
+		log.Fatalf("Error listing containers: %v", err)
+		return err
+	}
+
+	// 查找指定名称的容器
+	var containerID string
+	for _, container := range containers {
+		for _, name := range container.Names {
+			if name == "/"+containerName {
+				containerID = container.ID
+				break
+			}
+		}
+		if containerID != "" {
+			break
+		}
+	}
+
+	if containerID == "" {
+		log.Fatalf("Container with name '%s' not found", containerName)
+	}
+
+	// 删除容器 - 使用新的container.RemoveOptions
+	err = cli.ContainerRemove(context.Background(), containerID, container.RemoveOptions{
+		Force: true, // 强制删除运行中的容器
+	})
+	if err != nil {
+		log.Fatalf("Error removing container: %v", err)
+	}
+
+	fmt.Printf("成功删除容器: %s\n", containerName)
+	return nil
 }

@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"time"
 	pb "workerNode/schedule"
 
@@ -60,12 +59,12 @@ func (s *server) ProcessMessage(ctx context.Context, req *pb.ScheduleRequest) (*
 		}, nil
 	}
 
-	// TODO 等待容器加载完毕，服务就绪
+	// 等待容器加载完毕，等待服务就绪
 	// 定义请求的 URL
 	url_ready := "http://localhost:" + host_port + "/health"
 	// 定义重试间隔时间（这里设置为 2 秒）
 	retryInterval := 2 * time.Second
-
+	// 持续不断的向探活端口发出请求，直到被响应
 	for {
 		// 创建一个新的 HTTP GET 请求
 		resp_ready, err := http.Get(url_ready)
@@ -98,7 +97,7 @@ func (s *server) ProcessMessage(ctx context.Context, req *pb.ScheduleRequest) (*
 			time.Sleep(retryInterval)
 			continue
 		}
-		// 打印解析后的结果
+		// 如果走到这都没有问题，说明容器已经就绪
 		fmt.Printf("容器已经就绪，可以开始访问")
 		break
 	}
@@ -161,7 +160,6 @@ func (s *server) ProcessMessage(ctx context.Context, req *pb.ScheduleRequest) (*
 
 // 在本节点上启动一个容器推理实例
 func StartContainerInstance(model_name string) (string, error) {
-	os.Setenv("DOCKER_API_VERSION", "1.43")
 	host_port, err := container.StartModelContainer(model_name)
 	if err != nil {
 		return "", err
